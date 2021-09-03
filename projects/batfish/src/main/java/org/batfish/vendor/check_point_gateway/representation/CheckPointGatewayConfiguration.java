@@ -35,6 +35,11 @@ import org.batfish.datamodel.IpSpace;
 import org.batfish.datamodel.LineAction;
 import org.batfish.datamodel.Prefix;
 import org.batfish.datamodel.Vrf;
+import org.batfish.datamodel.packet_policy.ApplyTransformation;
+import org.batfish.datamodel.packet_policy.FibLookup;
+import org.batfish.datamodel.packet_policy.IngressInterfaceVrf;
+import org.batfish.datamodel.packet_policy.PacketPolicy;
+import org.batfish.datamodel.packet_policy.Return;
 import org.batfish.datamodel.route.nh.NextHop;
 import org.batfish.datamodel.route.nh.NextHopDiscard;
 import org.batfish.datamodel.route.nh.NextHopInterface;
@@ -61,6 +66,7 @@ public class CheckPointGatewayConfiguration extends VendorConfiguration {
 
   public static final String VRF_NAME = "default";
   public static final String INTERFACE_ACL_NAME = "~INTERFACE_ACL~";
+  public static final String NAT_PACKET_POLICY_NAME = "~NAT_PACKET_POLICY~";
 
   public CheckPointGatewayConfiguration() {
     _bondingGroups = new HashMap<>();
@@ -230,6 +236,21 @@ public class CheckPointGatewayConfiguration extends VendorConfiguration {
     if (getManualNatRules(natRulebase, gateway)
         .anyMatch(rule -> rule.getMethod() != NatMethod.HIDE)) {
       _w.redFlag("Non-HIDE NAT rules are unsupported");
+    }
+
+    List<org.batfish.datamodel.packet_policy.Statement> lines =
+        manualHideRuleTransformations.stream()
+            .map(ApplyTransformation::new)
+            .collect(ImmutableList.toImmutableList());
+    // Build packet policy to hold all the NAT rules
+    PacketPolicy pp =
+        new PacketPolicy(
+            NAT_PACKET_POLICY_NAME,
+            lines,
+            new Return(new FibLookup(IngressInterfaceVrf.instance())));
+    _c.getPacketPolicies().putIfAbsent(pp.getName(), pp);
+    if (!manualHideRuleTransformations.isEmpty()) {
+      _natTransform = manualHideRuleTransformations.get(0);
     }
     // TODO Apply transformations to appropriate interfaces
   }
@@ -421,6 +442,8 @@ public class CheckPointGatewayConfiguration extends VendorConfiguration {
 
     // TODO confirm AccessRule interaction with NAT
     newIface.setOutgoingFilter(_c.getIpAccessLists().get(INTERFACE_ACL_NAME));
+    // newIface.setPacketPolicy(NAT_PACKET_POLICY_NAME);
+    newIface.setIncomingTransformation(_natTransform);
     return newIface.build();
   }
 
@@ -466,4 +489,6 @@ public class CheckPointGatewayConfiguration extends VendorConfiguration {
   private Map<Prefix, StaticRoute> _staticRoutes;
 
   private ConfigurationFormat _vendor;
+
+  private Transformation _natTransform;
 }

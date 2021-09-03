@@ -23,6 +23,7 @@ public final class CpmiHostCkpTest {
             + "\"type\":\"CpmiHostCkp\","
             + "\"uid\":\"0\","
             + "\"name\":\"foo\","
+            + "\"interfaces\":[],"
             + "\"ipv4-address\":\"0.0.0.0\","
             + "\"interfaces\": [],"
             + "\"policy\":{}"
