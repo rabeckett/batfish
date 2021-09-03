@@ -35,7 +35,6 @@ import org.batfish.datamodel.IpSpace;
 import org.batfish.datamodel.LineAction;
 import org.batfish.datamodel.Prefix;
 import org.batfish.datamodel.Vrf;
-import org.batfish.datamodel.packet_policy.ApplyTransformation;
 import org.batfish.datamodel.route.nh.NextHop;
 import org.batfish.datamodel.route.nh.NextHopDiscard;
 import org.batfish.datamodel.route.nh.NextHopInterface;
@@ -233,10 +232,6 @@ public class CheckPointGatewayConfiguration extends VendorConfiguration {
       _w.redFlag("Non-HIDE NAT rules are unsupported");
     }
 
-    List<org.batfish.datamodel.packet_policy.Statement> lines =
-        manualHideRuleTransformations.stream()
-            .map(ApplyTransformation::new)
-            .collect(ImmutableList.toImmutableList());
     // TODO refactor to attach multiple transforms
     if (!manualHideRuleTransformations.isEmpty()) {
       _natTransform = manualHideRuleTransformations.get(0);
